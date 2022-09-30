@@ -1,5 +1,8 @@
 package chess;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import boardgame.Board;
 import boardgame.Piece;
 import boardgame.Position;
@@ -11,11 +14,17 @@ public class ChessMatch {
 	private int turn;
 	private Color currentPlayer;
 	private Board board;
+	
+	private List<Piece> piecesOnTheBoard = new ArrayList<>(); //Garante que a lista seja automaticamente instanciada ao carregar a partida.
+	//private List<ChessPiece> piecesOnTheBoard; //Poderia ficar assim!
+	private List<Piece> capturedPieces = new ArrayList<>();
 
+	//Construtor não foi atualizado com a instância do ArrayList<>();
 	public ChessMatch() {
 		board = new Board(8, 8);
 		turn = 1;
 		currentPlayer = Color.WHITE;
+		//piecesOnTheBoard = new ArrayList<>(); //Poderia ficar assim!
 		initialSetup();
 	}
 	
@@ -56,9 +65,16 @@ public class ChessMatch {
 
 	private Piece makeMove(Position source, Position target) {
 		Piece p = board.removePiece(source); //Remove a peça da posição de origem.
-		Piece capturePiece = board.removePiece(target); //Remove a peça da posição de destino.
+		Piece capturedPiece = board.removePiece(target); //Remove a peça da posição de destino.
 		board.placePiece(p, target); //Peça (p) na posição de destino (target).
-		return capturePiece; //Retorna a peça capturada.
+		
+		//Quando um movimento capturar um peça, 
+		if (capturedPiece != null) {
+			piecesOnTheBoard.remove(capturedPiece);
+			capturedPieces.add(capturedPiece);
+		}
+		
+		return capturedPiece; //Retorna a peça capturada.
 	}
 	
 	//Validação da peça de origem com duas verificações.
@@ -90,7 +106,9 @@ public class ChessMatch {
 	}
 	
 	private void placeNewPiece(char column, int row, ChessPiece piece) {
-		board.placePiece(piece, new ChessPosition(column, row).toPosition());
+		board.placePiece(piece, new ChessPosition(column, row).toPosition()); //Além de colocar a peça no tabuleiro...
+		//...já coloca também na lista de peças do tabuleiro.
+		piecesOnTheBoard.add(piece);
 	}
 	
 	private void initialSetup() {

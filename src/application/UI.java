@@ -1,7 +1,10 @@
 package application;
 
+import java.util.Arrays;
 import java.util.InputMismatchException;
+import java.util.List;
 import java.util.Scanner;
+import java.util.stream.Collectors;
 
 import chess.ChessMatch;
 import chess.ChessPiece;
@@ -33,6 +36,8 @@ public class UI {
 
 	// https://stackoverflow.com/questions/2979383/java-clear-the-console
 	public static void clearScreen() {
+		//\033[H: Move o cursor no canto superior esquerdo da tela ou console.
+		//\033[2J: Limpa a tela do cursor até o final da tela.
 		System.out.print("\033[H\033[2J");
 		System.out.flush();
 	}
@@ -49,8 +54,10 @@ public class UI {
 		}
 	}
 
-	public static void printMatch(ChessMatch chessMatch) {
+	public static void printMatch(ChessMatch chessMatch, List<ChessPiece> captured) {
 		printBoard(chessMatch.getPieces()); // Tabuleiro normal
+		System.out.println();
+		printCapturedPieces(captured);
 		System.out.println();
 		System.out.println("Turn: " + chessMatch.getTurn()); // Turno atual
 		//Aguardando o jogador da cor que atual
@@ -94,5 +101,23 @@ public class UI {
 			}
 		}
 		System.out.print(" ");
+	}
+	
+	/*Imprime na tela a lista de peças capturadas.*/
+	private static void printCapturedPieces(List<ChessPiece> captured) {
+		//Operação básica para filtrar a lista de peças brancas e pretas
+		List<ChessPiece> white = captured.stream().filter(x -> x.getColor() == Color.WHITE).collect(Collectors.toList());
+		List<ChessPiece> black = captured.stream().filter(x -> x.getColor() == Color.BLACK).collect(Collectors.toList());
+		
+		System.out.println("Captured pieces:");
+		System.out.print("White: ");
+		System.out.print(ANSI_WHITE);
+		System.out.println(Arrays.toString(white.toArray()));
+		System.out.print(ANSI_RESET);
+		
+		System.out.print("Black: ");
+		System.out.print(ANSI_YELLOW);
+		System.out.println(Arrays.toString(black.toArray()));
+		System.out.print(ANSI_RESET);
 	}
 }
