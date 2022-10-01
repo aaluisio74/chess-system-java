@@ -16,6 +16,7 @@ public class ChessMatch {
 	private Color currentPlayer;
 	private Board board;
 	private boolean check; // Por padrão é false.
+	private boolean checkMate;
 	
 	private List<Piece> piecesOnTheBoard = new ArrayList<>(); //Garante que a lista seja automaticamente instanciada ao carregar a partida.
 	//private List<ChessPiece> piecesOnTheBoard; //Poderia ficar assim!
@@ -42,6 +43,10 @@ public class ChessMatch {
 	
 	public boolean getCheck() {
 		return check;
+	}
+	
+	public boolean getCheckMate() {
+		return checkMate;
 	}
 
 	public ChessPiece[][] getPieces() {
@@ -76,7 +81,13 @@ public class ChessMatch {
 		//Se o oponente se colocou em xeque, precisa ser informado.
 		check = (testCheck(opponent(currentPlayer))) ? true : false;
 		
-		nextTurn();
+		if (testCheckMate(opponent(currentPlayer))) { //Se a jogada feita deixou em xeque-mate, checkMate recebe TRUE.
+			checkMate = true;
+		}
+		else {
+			nextTurn(); //Próximo turno.
+		}
+		
 		return (ChessPiece)capturePiece;
 	}
 
@@ -164,6 +175,34 @@ public class ChessMatch {
 		return false;
 	}
 	
+	private boolean testCheckMate(Color color) {
+		//Se a cor que vier por parâmetro não estiver em xeque, retorna FALSE.
+		if (!testCheck(color)) {
+			return false;
+		}
+		//Todas as peças da cor do parâmetro serão filtradas nessa lista.
+		List<Piece> list = piecesOnTheBoard.stream().filter(x -> ((ChessPiece)x).getColor() == color).collect(Collectors.toList());
+		
+		for (Piece p : list) { //Percorre todas as peças que estão na lista.
+			boolean[][] mat = p.possibleMoves(); //Essa armazena os movimentos possíveis.
+			for (int i = 0; i < board.getRows(); i++) { // Percorre as linhas da matriz.
+				for (int j = 0; j < board.getColumns(); j++) { //Percorre as colunas da matriz.
+					if (mat[i][j]) { //Se encontrar um movimento possível...
+						Position source = ((ChessPiece)p).getChessPosition().toPosition(); // Move a peça "p" para o movimento possível.
+						Position target = new Position(i, j); //Posição de destino.
+						Piece capturedPiece = makeMove(source, target); //Peça capturada é substituída pela peça captora. Esse movimento foi para testar.
+						boolean testCheck = testCheck(color); //Testa se o REI da cor do parâmetro está em cheque
+						undoMove(source, target, capturedPiece); //Desfaz o movimento.
+						if (!testCheck) { //Se não está em xeque, retorna FALSE, pois não está em xeque-mate.
+							return false;
+						}
+					}					
+				}
+			}
+		}
+		return true; // Depois que executar o FOR e não for encontrado nenhum movimento que saia do check, retorna true.
+	}
+	
 	private void placeNewPiece(char column, int row, ChessPiece piece) {
 		board.placePiece(piece, new ChessPosition(column, row).toPosition()); //Além de colocar a peça no tabuleiro...
 		//...já coloca também na lista de peças do tabuleiro.
@@ -171,18 +210,11 @@ public class ChessMatch {
 	}
 	
 	private void initialSetup() {
-		placeNewPiece('c', 1, new Rook(board, Color.WHITE));
-        placeNewPiece('c', 2, new Rook(board, Color.WHITE));
-        placeNewPiece('d', 2, new Rook(board, Color.WHITE));
-        placeNewPiece('e', 2, new Rook(board, Color.WHITE));
-        placeNewPiece('e', 1, new Rook(board, Color.WHITE));
-        placeNewPiece('d', 1, new King(board, Color.WHITE));
+		placeNewPiece('h', 7, new Rook(board, Color.WHITE));
+        placeNewPiece('d', 1, new Rook(board, Color.WHITE));
+        placeNewPiece('e', 1, new King(board, Color.WHITE));
 
-        placeNewPiece('c', 7, new Rook(board, Color.BLACK));
-        placeNewPiece('c', 8, new Rook(board, Color.BLACK));
-        placeNewPiece('d', 7, new Rook(board, Color.BLACK));
-        placeNewPiece('e', 7, new Rook(board, Color.BLACK));
-        placeNewPiece('e', 8, new Rook(board, Color.BLACK));
-        placeNewPiece('d', 8, new King(board, Color.BLACK));
+        placeNewPiece('b', 8, new Rook(board, Color.BLACK));
+        placeNewPiece('a', 8, new King(board, Color.BLACK));
 	}
 }
