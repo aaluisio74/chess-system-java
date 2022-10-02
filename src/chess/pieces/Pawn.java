@@ -19,7 +19,7 @@ public class Pawn extends ChessPiece {
 		boolean[][] mat = new boolean[getBoard().getRows()][getBoard().getColumns()];
 
 		Position p = new Position(0, 0);
-		//Código para o PEÃO BRANCO
+		// Código para o PEÃO BRANCO
 		// Se cor do PEÃO for branca deve movimentar a peça para cima.
 		if (getColor() == Color.WHITE) {
 			// Testa se o peão pode se mover para cima.
@@ -55,13 +55,13 @@ public class Pawn extends ChessPiece {
 				mat[p.getRow()][p.getColumn()] = true;
 			}
 		} else {
-			//Mesmo código acima para o PEÃO PRETO
+			// Mesmo código acima para o PEÃO PRETO
 			p.setValues(position.getRow() + 1, position.getColumn());
 
 			if (getBoard().positionExists(p) && !getBoard().thereIsAPiece(p)) {
 				mat[p.getRow()][p.getColumn()] = true;
 			}
-			
+
 			p.setValues(position.getRow() + 2, position.getColumn());
 			Position p2 = new Position(position.getRow() + 1, position.getColumn());
 
@@ -82,8 +82,9 @@ public class Pawn extends ChessPiece {
 		}
 		return mat;
 	}
+
 	@Override
 	public String toString() {
 		return "P";
-	}	
+	}
 }
