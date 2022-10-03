@@ -21,6 +21,8 @@ public class ChessMatch {
 	private Board board;
 	private boolean check; // Por padrão é false.
 	private boolean checkMate;
+	private ChessPiece enPassantVulnerable; // Valor padrão NULO (null). Portanto, não tem nenhuma peça vulnerável para
+											// o próximo turno.
 
 	private List<Piece> piecesOnTheBoard = new ArrayList<>(); // Garante que a lista seja automaticamente instanciada ao
 																// carregar a partida.
@@ -54,6 +56,10 @@ public class ChessMatch {
 		return checkMate;
 	}
 
+	public ChessPiece getEnPassantVulnerable() {
+		return enPassantVulnerable;
+	}
+
 	public ChessPiece[][] getPieces() {
 		ChessPiece[][] mat = new ChessPiece[board.getRows()][board.getColumns()];
 		for (int i = 0; i < board.getRows(); i++) {
@@ -75,13 +81,16 @@ public class ChessMatch {
 		Position target = targetPosition.toPosition();
 		validateSourcePosition(source);
 		validateTargetPosition(source, target);
-		Piece capturedPiece = makeMove(source, target); //and ChessMatch bugfix: Faltou a letra "d" em capturedPiece.
+		Piece capturedPiece = makeMove(source, target); // and ChessMatch bugfix: Faltou a letra "d" em capturedPiece.
 
 		// Se essa condição falhar, o jogador não se colocou em xeque
 		if (testCheck(currentPlayer)) {
-			undoMove(source, target, capturedPiece); //and ChessMatch bugfix: Faltou a letra "d" em capturedPiece.
+			undoMove(source, target, capturedPiece); // and ChessMatch bugfix: Faltou a letra "d" em capturedPiece.
 			throw new ChessException("You can't put yourself in check!");
 		}
+
+		// Pega uma referência da peça que se moveu!
+		ChessPiece movedPiece = (ChessPiece) board.piece(target);
 
 		// Se o oponente se colocou em xeque, precisa ser informado.
 		check = (testCheck(opponent(currentPlayer))) ? true : false;
@@ -92,7 +101,20 @@ public class ChessMatch {
 			nextTurn(); // Próximo turno.
 		}
 
-		return (ChessPiece)capturedPiece; //and ChessMatch bugfix: Faltou a letra "d" em capturedPiece.
+		// #Special move En Passant
+		/*
+		 * Se a peça movida for um peão e a diferença de casas for 2 duas casas para
+		 * mais ou para menos, significa que foi movimento inicial de peão com duas
+		 * casas. Está vunerável a tomar o En Passant no próximo turno.
+		 */
+		if (movedPiece instanceof Pawn
+				&& (target.getRow() == source.getRow() - 2 || target.getRow() == source.getRow() + 2)) {
+			enPassantVulnerable = movedPiece;
+		} else {
+			enPassantVulnerable = null;
+		}
+
+		return (ChessPiece) capturedPiece; // and ChessMatch bugfix: Faltou a letra "d" em capturedPiece.
 	}
 
 	private Piece makeMove(Position source, Position target) {
@@ -133,11 +155,34 @@ public class ChessMatch {
 			// Posição de destino da TORRE.
 			Position targetT = new Position(source.getRow(), source.getColumn() - 1);
 			// Para pegar a TORRE na sua origem para mover
-			ChessPiece rook = (ChessPiece)board.removePiece(sourceT);
+			ChessPiece rook = (ChessPiece) board.removePiece(sourceT);
 			// Coloca a TORRE na posição de destino.
 			board.placePiece(rook, targetT);
 			// Incrementa a quantidade de movimentos da TORRE
 			rook.increaseMoveCount();
+		}
+
+		// #Special move - En Passant
+		/*
+		 * Tratamento especial pois esse movimento foge mecânica normal, ou seja, quando
+		 * uma peça para em cima de uma peça adversária, ele a captura. Nesse caso, vai
+		 * parar em uma casa vazia e a captura terá que ser manual.
+		 */
+		// Testa se a peça movida é uma instância de PEÃO.
+		if (p instanceof Pawn) {
+			// Se a coluna de origem é diferente da coluna de destino e a peça capturada
+			// igual a nulo, é um En Passant.
+			if (source.getColumn() != target.getColumn() && capturedPiece == null) {
+				Position pawnPosition;
+				if (p.getColor() == Color.WHITE) {
+					pawnPosition = new Position(target.getRow() + 1, target.getColumn());
+				} else {
+					pawnPosition = new Position(target.getRow() - 1, target.getColumn());
+				}
+				capturedPiece = board.removePiece(pawnPosition);
+				capturedPieces.add(capturedPiece);
+				piecesOnTheBoard.remove(capturedPiece);
+			}
 		}
 
 		return capturedPiece; // Retorna a peça capturada.
@@ -181,7 +226,37 @@ public class ChessMatch {
 			board.placePiece(rook, sourceT);
 			// Incrementa a quantidade de movimentos da TORRE
 			rook.decreaseMoveCount();
+		}
 
+		// #Special move - En Passant
+		/* Tratamento especial pois esse movimento foge mecânica normal, ou seja, quando
+		 * uma peça para em cima de uma peça adversária, ele a captura. Nesse caso, vai
+		 * parar em uma casa vazia e a captura terá que ser manual.
+		 */
+		// Testa se a peça movida é uma instância de PEÃO.
+		if (p instanceof Pawn) {
+			// Se a coluna de origem é diferente da coluna de destino e a peça capturada
+			// igual a nulo, é um En Passant.
+			if (source.getColumn() != target.getColumn() && capturedPiece == enPassantVulnerable) {
+				/*Será necessário pegar a peça que sofreu o passante e que voltou para a posição de origem e levá-la de volta para a 
+				  posição de destino.*/
+				ChessPiece pawn = (ChessPiece)board.removePiece(target);
+				
+				
+				Position pawnPosition;
+				if (p.getColor() == Color.WHITE) {
+					pawnPosition = new Position(3, target.getColumn());
+				} else {
+					pawnPosition = new Position(4, target.getColumn());
+				}
+				//Coloca a peça que estava no lugar errado na posição que deve ficar.
+				board.placePiece(pawn, pawnPosition);
+				
+				//Não é mais necessário fazer a troca de listas. Ela já foi feita no início do código undoMove().
+				/*capturedPiece = board.removePiece(pawnPosition);
+				capturedPieces.add(capturedPiece);
+				piecesOnTheBoard.remove(capturedPiece);*/
+			}
 		}
 
 	}
@@ -296,14 +371,14 @@ public class ChessMatch {
 		placeNewPiece('f', 1, new Bishop(board, Color.WHITE));
 		placeNewPiece('g', 1, new Knight(board, Color.WHITE));
 		placeNewPiece('h', 1, new Rook(board, Color.WHITE));
-		placeNewPiece('a', 2, new Pawn(board, Color.WHITE));
-		placeNewPiece('b', 2, new Pawn(board, Color.WHITE));
-		placeNewPiece('c', 2, new Pawn(board, Color.WHITE));
-		placeNewPiece('d', 2, new Pawn(board, Color.WHITE));
-		placeNewPiece('e', 2, new Pawn(board, Color.WHITE));
-		placeNewPiece('f', 2, new Pawn(board, Color.WHITE));
-		placeNewPiece('g', 2, new Pawn(board, Color.WHITE));
-		placeNewPiece('h', 2, new Pawn(board, Color.WHITE));
+		placeNewPiece('a', 2, new Pawn(board, Color.WHITE, this));
+		placeNewPiece('b', 2, new Pawn(board, Color.WHITE, this));
+		placeNewPiece('c', 2, new Pawn(board, Color.WHITE, this));
+		placeNewPiece('d', 2, new Pawn(board, Color.WHITE, this));
+		placeNewPiece('e', 2, new Pawn(board, Color.WHITE, this));
+		placeNewPiece('f', 2, new Pawn(board, Color.WHITE, this));
+		placeNewPiece('g', 2, new Pawn(board, Color.WHITE, this));
+		placeNewPiece('h', 2, new Pawn(board, Color.WHITE, this));
 
 		placeNewPiece('a', 8, new Rook(board, Color.BLACK));
 		placeNewPiece('b', 8, new Knight(board, Color.BLACK));
@@ -313,13 +388,13 @@ public class ChessMatch {
 		placeNewPiece('f', 8, new Bishop(board, Color.BLACK));
 		placeNewPiece('g', 8, new Knight(board, Color.BLACK));
 		placeNewPiece('h', 8, new Rook(board, Color.BLACK));
-		placeNewPiece('a', 7, new Pawn(board, Color.BLACK));
-		placeNewPiece('b', 7, new Pawn(board, Color.BLACK));
-		placeNewPiece('c', 7, new Pawn(board, Color.BLACK));
-		placeNewPiece('d', 7, new Pawn(board, Color.BLACK));
-		placeNewPiece('e', 7, new Pawn(board, Color.BLACK));
-		placeNewPiece('f', 7, new Pawn(board, Color.BLACK));
-		placeNewPiece('g', 7, new Pawn(board, Color.BLACK));
-		placeNewPiece('h', 7, new Pawn(board, Color.BLACK));
+		placeNewPiece('a', 7, new Pawn(board, Color.BLACK, this));
+		placeNewPiece('b', 7, new Pawn(board, Color.BLACK, this));
+		placeNewPiece('c', 7, new Pawn(board, Color.BLACK, this));
+		placeNewPiece('d', 7, new Pawn(board, Color.BLACK, this));
+		placeNewPiece('e', 7, new Pawn(board, Color.BLACK, this));
+		placeNewPiece('f', 7, new Pawn(board, Color.BLACK, this));
+		placeNewPiece('g', 7, new Pawn(board, Color.BLACK, this));
+		placeNewPiece('h', 7, new Pawn(board, Color.BLACK, this));
 	}
 }

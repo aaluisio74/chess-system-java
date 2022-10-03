@@ -2,10 +2,19 @@ package chess.pieces;
 
 import boardgame.Board;
 import boardgame.Position;
+import chess.ChessMatch;
 import chess.ChessPiece;
 import chess.Color;
 
 public class Pawn extends ChessPiece {
+
+	// Dependência do PEÃO para a partida. Essa é a associação entre os objetos.
+	private ChessMatch chessMatch;
+
+	public Pawn(Board board, Color color, ChessMatch chessMatch) {
+		super(board, color);
+		this.chessMatch = chessMatch;
+	}
 
 	// Add constructor "Pawn(Board, Color)"
 	public Pawn(Board board, Color color) {
@@ -54,6 +63,28 @@ public class Pawn extends ChessPiece {
 			if (getBoard().positionExists(p) && isThereOpponentPiece(p)) {
 				mat[p.getRow()][p.getColumn()] = true;
 			}
+
+			// #Special move - En Passant da peça BRANCA
+			if (position.getRow() == 3) { // Posição da peça na linha 3
+				// Guarda a posição à esquerda
+				Position left = new Position(position.getRow(), position.getColumn() - 1);
+				// Testa se a posição da esquerda existe. Se tem uma peça que é oponente. E se a
+				// peça no local está vulnerável a tomar o En Passant.
+				if (getBoard().positionExists(left) && isThereOpponentPiece(left)
+						&& getBoard().piece(left) == chessMatch.getEnPassantVulnerable()) {
+					mat[left.getRow() - 1][left.getColumn()] = true; //Peão branco anda para cima, na matriz é negativo.
+				}
+
+				// Guarda a posição à direita
+				Position right = new Position(position.getRow(), position.getColumn() + 1);
+				// Testa se a posição da esquerda existe. Se tem uma peça que é oponente. E se a
+				// peça no local está vulnerável a tomar o En Passant.
+				if (getBoard().positionExists(right) && isThereOpponentPiece(right)
+						&& getBoard().piece(right) == chessMatch.getEnPassantVulnerable()) {
+					mat[right.getRow() - 1][right.getColumn()] = true;
+				}
+			}
+
 		} else {
 			// Mesmo código acima para o PEÃO PRETO
 			p.setValues(position.getRow() + 1, position.getColumn());
@@ -79,6 +110,28 @@ public class Pawn extends ChessPiece {
 			if (getBoard().positionExists(p) && isThereOpponentPiece(p)) {
 				mat[p.getRow()][p.getColumn()] = true;
 			}
+
+			// #Special move - En Passant da peça PRETA
+			if (position.getRow() == 4) { // Posição da peça na linha 4. De cima para baixo.
+				// Guarda a posição à esquerda
+				Position left = new Position(position.getRow(), position.getColumn() - 1);
+				// Testa se a posição da esquerda existe. Se tem uma peça que é oponente. E se a
+				// peça no local está vulnerável a tomar o En Passant.
+				if (getBoard().positionExists(left) && isThereOpponentPiece(left)
+						&& getBoard().piece(left) == chessMatch.getEnPassantVulnerable()) {
+					mat[left.getRow() + 1][left.getColumn()] = true; //Peão preto anda para baixo, na matriz é positivo.
+				}
+
+				// Guarda a posição à direita
+				Position right = new Position(position.getRow(), position.getColumn() + 1);
+				// Testa se a posição da esquerda existe. Se tem uma peça que é oponente. E se a
+				// peça no local está vulnerável a tomar o En Passant.
+				if (getBoard().positionExists(right) && isThereOpponentPiece(right)
+						&& getBoard().piece(right) == chessMatch.getEnPassantVulnerable()) {
+					mat[right.getRow() + 1][right.getColumn()] = true;
+				}
+			}
+
 		}
 		return mat;
 	}
