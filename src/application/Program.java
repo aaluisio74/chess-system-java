@@ -35,12 +35,20 @@ public class Program {
 				System.out.print("Target: ");
 				ChessPosition target = UI.readChessPosition(sc);
 
+				//Aqui a peça promovida já vai receber a RAINHA, porém, o usuário poderá escolher a peça que desejar.
 				ChessPiece capturedPiece = chessMatch.performChessMove(source, target);
 				
 				/*Controle das peças capturadas. Sempre que executar o movimento na linha acima, a peça é adicionada na lista de
 				  peças capturadas*/
 				if (capturedPiece != null) {
 					captured.add(capturedPiece);
+				}
+				
+				// # Special move Promotion
+				if (chessMatch.getPromoted() != null) { //Signigica que uma peça foi promovida.
+					System.out.print("Enter piece for promotion (B/N/R/Q): ");
+					String type = sc.nextLine();
+					chessMatch.replacePromotedPiece(type);
 				}
 				
 			} catch (ChessException e) {
@@ -50,10 +58,8 @@ public class Program {
 				System.out.println(e.getMessage());
 				sc.nextLine();
 			}
-
 		}
 		UI.clearScreen();
 		UI.printMatch(chessMatch, captured);
-		
 	}
 }

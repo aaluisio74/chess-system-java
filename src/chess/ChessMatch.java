@@ -1,5 +1,6 @@
 package chess;
 
+import java.security.InvalidParameterException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -23,6 +24,7 @@ public class ChessMatch {
 	private boolean checkMate;
 	private ChessPiece enPassantVulnerable; // Valor padrão NULO (null). Portanto, não tem nenhuma peça vulnerável para
 											// o próximo turno.
+	private ChessPiece promoted;
 
 	private List<Piece> piecesOnTheBoard = new ArrayList<>(); // Garante que a lista seja automaticamente instanciada ao
 																// carregar a partida.
@@ -59,6 +61,10 @@ public class ChessMatch {
 	public ChessPiece getEnPassantVulnerable() {
 		return enPassantVulnerable;
 	}
+	
+	public ChessPiece getPromoted() {
+		return promoted;
+	}
 
 	public ChessPiece[][] getPieces() {
 		ChessPiece[][] mat = new ChessPiece[board.getRows()][board.getColumns()];
@@ -92,6 +98,17 @@ public class ChessMatch {
 		// Pega uma referência da peça que se moveu!
 		ChessPiece movedPiece = (ChessPiece) board.piece(target);
 
+		// # Special move Promotion
+		promoted = null;
+		if (movedPiece instanceof Pawn) {
+			if ((movedPiece.getColor() == Color.WHITE && target.getRow() == 0) || (movedPiece.getColor() == Color.BLACK && target.getRow() == 7)) {
+				//Primeiro joga o PEÃO e depois, na próxima linha, faz a troca.
+				promoted = (ChessPiece)board.piece(target);
+				//Facilita a implementação ao colocar a rainha como primeira opção escolhida e depois disponibiliar as outras peças.
+				promoted = replacePromotedPiece("Q");
+			}
+		}
+		
 		// Se o oponente se colocou em xeque, precisa ser informado.
 		check = (testCheck(opponent(currentPlayer))) ? true : false;
 
@@ -115,6 +132,40 @@ public class ChessMatch {
 		}
 
 		return (ChessPiece) capturedPiece; // and ChessMatch bugfix: Faltou a letra "d" em capturedPiece.
+	}
+	
+	// # Special move Promotion
+	public ChessPiece replacePromotedPiece(String type) {
+		if (promoted == null) {
+			throw new IllegalStateException("There is no piece to be promoted!");
+		}
+		if (!type.equals("B") && !type.equals("N") && !type.equals("R") && !type.equals("Q")) {
+			throw new InvalidParameterException("Invalid type for promotion!");
+		}
+		
+		//Remove a peça que estava na posição.
+		Position pos = promoted.getChessPosition().toPosition();
+		Piece p = board.removePiece(pos);
+		piecesOnTheBoard.remove(p);
+		
+		//Recebe a mesma cor da peço promovida.
+		ChessPiece newPiece = newPiece(type, promoted.getColor());
+		//Colocar a nova peça na posição da peça promovida.
+		board.placePiece(newPiece, pos);
+		//Adiciona a nova peça criada.
+		piecesOnTheBoard.add(newPiece);
+		
+		return newPiece; //Retorna a nova peça instanciada.
+		
+	}
+	
+	// # Special move Promotion
+	//Método auxiliar para a troca da peça promovida. Instancia a peça que será reposta.
+	private ChessPiece newPiece(String type, Color color) {
+		if (type.equals("B")) return new Bishop(board, color);
+		if (type.equals("N")) return new Knight(board, color);
+		if (type.equals("Q")) return new Queen(board, color);
+		return new Rook(board, color);
 	}
 
 	private Piece makeMove(Position source, Position target) {
