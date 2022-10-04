@@ -1,6 +1,5 @@
 package chess;
 
-import java.security.InvalidParameterException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -140,7 +139,14 @@ public class ChessMatch {
 			throw new IllegalStateException("There is no piece to be promoted!");
 		}
 		if (!type.equals("B") && !type.equals("N") && !type.equals("R") && !type.equals("Q")) {
-			throw new InvalidParameterException("Invalid type for promotion!");
+			/*A linha abaixo foi comentada pois não será mais necessária. Como a RAINHA já é padrão na troca da peça
+			  promovida, caso o receba nulo, deve retornar a peça promovida. Outro motivo é que essa exceção e do pacote
+			  java.security.InvalidParameterException que não tem nada a ver com o propósito desse programa. Não há questão
+			  de segurança de sistema nesse programa de jogo de xadrez.*/
+			//throw new InvalidParameterException("Invalid type for promotion!");
+			
+			//Peça promovida
+			return promoted;
 		}
 		
 		//Remove a peça que estava na posição.
